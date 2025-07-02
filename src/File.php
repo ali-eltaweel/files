@@ -10,7 +10,7 @@ use Lang\{ Annotations\Computes, Annotations\Sets, ComputedProperties, VirtualPr
  * @api
  * @abstract
  * @since 1.0.0
- * @version 1.0.0
+ * @version 1.1.0
  * @package files
  * @author Ali M. Kamel <ali.kamel.dev@gmail.com>
  * 
@@ -347,15 +347,14 @@ abstract class File {
      * Copies the file to a new location.
      * 
      * @api
-     * @final
      * @since 1.0.0
-     * @version 1.0.0
+     * @version 1.1.0
      * 
      * @param Path|string $target The target path where the file should be copied.
      * 
      * @return bool Returns true on success, false on failure.
      */
-    public final function copy(Path|string $target): bool {
+    public function copy(Path|string $target): bool {
 
         return copy($this->path, $target);
     }

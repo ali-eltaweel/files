@@ -9,7 +9,7 @@ use RuntimeException;
  * 
  * @api
  * @since 1.0.0
- * @version 1.0.0
+ * @version 1.1.0
  * @package files
  * @author Ali M. Kamel <ali.kamel.dev@gmail.com>
  */
@@ -35,7 +35,7 @@ enum FileType: string {
      * @api
      * @final
      * @since 1.0.0
-     * @version 1.0.0
+     * @version 1.1.0
      * 
      * @return string The class name.
      * @throws RuntimeException If the file type is unsupported.
@@ -49,6 +49,7 @@ enum FileType: string {
             self::Directory         => Directory::class,
             self::RegularFile       => RegularFile::class,
             self::Link              => Link::class,
+            self::Socket            => Socket::class,
             default                 => throw new RuntimeException('Unsupported file type: ' . $this->value),
         };
     }
