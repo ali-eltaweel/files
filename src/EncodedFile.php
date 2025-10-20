@@ -9,10 +9,9 @@ use Lang\Annotations\{ Computes, Sets };
 /**
  * Encoded File.
  * 
- * 
  * @api
  * @since 1.0.0
- * @version 1.0.0
+ * @version 1.0.1
  * @package files
  * @author Ali M. Kamel <ali.kamel.dev@gmail.com>
  * 
@@ -43,14 +42,14 @@ class EncodedFile extends RegularFile {
      * @api
      * @final
      * @since 1.0.0
-     * @version 1.0.0
+     * @version 1.0.1
      * 
      * @return mixed
      */
     #[Computes('data')]
     public final function getData(): mixed {
 
-        return $this->codec->decode($this->getContent());
+        return is_null($content = $this->getContent()) ? null : $this->codec->decode($content);
     }
 
     /**
