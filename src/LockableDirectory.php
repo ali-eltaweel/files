@@ -7,7 +7,7 @@ namespace Files;
  * 
  * @api
  * @since 1.0.0
- * @version 1.0.0
+ * @version 1.1.0
  * @package files
  * @author Ali M. Kamel <ali.kamel.dev@gmail.com>
  * 
@@ -22,21 +22,45 @@ class LockableDirectory extends Directory {
      * @final
      * @override
      * @since 1.0.0
-     * @version 1.0.0
+     * @version 1.1.0
      * 
      * @param Path|string $lockFilename The name of the lock file to be created (default is '.lock').
      * @param string $lockFileOpeningMode The mode in which to open the lock file (default is 'w').
      * @param bool $removeLockFileOnUnlock Whether to remove the lock file when unlocking (default is true).
-     * @return Handles\Handle Returns a handle to the opened file.
+     * @return Handles\LockableDirectoryHandle Returns a handle to the opened file.
      */
     public final function open(Path|string $lockFilename = '.lock', string $lockFileOpeningMode = 'w', bool $removeLockFileOnUnlock = true): Handles\LockableDirectoryHandle {
 
-        return new Handles\LockableDirectoryHandle(
+        $logUnit = static::class . '::' . __FUNCTION__;
+
+        $this->infoLog(fn () => [
+            'Opening lockable directory' => [
+                'path'                   => $this->path->path,
+                'lockFileName'           => $lockFilename,
+                'lockFileOpeningMode'    => $lockFileOpeningMode,
+                'removeLockFileOnUnlock' => $removeLockFileOnUnlock
+            ]
+        ], $logUnit);
+
+        $handle = new Handles\LockableDirectoryHandle(
             $this->path,
             $this->createLockFile($lockFilename),
             $lockFileOpeningMode,
             $removeLockFileOnUnlock
         );
+        $handle->setLogger($this->logger);
+
+        $this->debugLog(fn () => [
+            'Opening lockable directory' => [
+                'path'                   => $this->path->path,
+                'lockFileName'           => $lockFilename,
+                'lockFileOpeningMode'    => $lockFileOpeningMode,
+                'removeLockFileOnUnlock' => $removeLockFileOnUnlock,
+                'handle'                 => [ 'class' => $handle::class, 'id' => spl_object_id($handle) ]
+            ]
+        ], $logUnit);
+
+        return $handle;
     }
 
     /**
@@ -73,7 +97,7 @@ class LockableDirectory extends Directory {
      * @api
      * @final
      * @since 1.0.0
-     * @version 1.0.0
+     * @version 1.1.0
      * 
      * @param callable(File): void $callback
      * @return void
@@ -89,7 +113,11 @@ class LockableDirectory extends Directory {
                     continue;
                 }
 
-                $callback(File::make($this->path->append($entry)));
+                $file = File::make($this->path->append($entry));
+
+                $file->setLogger($this->logger);
+
+                $callback($file);
             }
         });
     }
@@ -99,13 +127,29 @@ class LockableDirectory extends Directory {
      * 
      * @internal
      * @since 1.0.0
-     * @version 1.0.0
+     * @version 1.1.0
      * 
      * @param Path|string $lockFilename
      * @return RegularFile
      */
     protected function createLockFile(Path|string $lockFilename = '.lock'): RegularFile {
 
-        return new RegularFile($this->path->append($lockFilename));
+        $logUnit = static::class . '::' . __FUNCTION__;
+
+        $this->infoLog(fn () => [
+            'Creating lock file' => [ 'path' => $this->path->path, 'lockFilename' => $lockFilename ]
+        ], $logUnit);
+
+        $lockFile = new RegularFile($this->path->append($lockFilename));
+
+        $this->debugLog(fn () => [
+            'Creating lock file' => [
+                'path'         => $this->path->path,
+                'lockFilename' => $lockFilename,
+                'lockFile'     => [ 'class' => $lockFile::class, 'id' => spl_object_id($lockFile) ]
+            ]
+        ], $logUnit);
+
+        return $lockFile;
     }
 }

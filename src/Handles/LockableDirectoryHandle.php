@@ -6,12 +6,14 @@ use Files\{ Lock, Path, RegularFile };
 
 use Lang\{ Annotations\LazyInitialized, LazyProperties };
 
+use Logger\Logger;
+
 /**
  * Lockable Directory Handle.
  * 
  * @api
  * @since 1.0.0
- * @version 1.0.0
+ * @version 1.1.0
  * @package files
  * @author Ali M. Kamel <ali.kamel.dev@gmail.com>
  */
@@ -97,6 +99,25 @@ final class LockableDirectoryHandle extends DirectoryHandle {
     }
 
     /**
+     * Sets the logger instance.
+     * 
+     * @api
+     * @final
+     * @override
+     * @since 1.1.0
+     * @version 1.0.0
+     * 
+     * @param Logger|null $logger
+     * @return void
+     */
+    public final function setLogger(?Logger $logger): void {
+
+        parent::setLogger($logger);
+
+        $this->lockFileHandle->setLogger($logger);
+    }
+
+    /**
      * Performs the actual locking operation.
      * 
      * @final
@@ -138,12 +159,16 @@ final class LockableDirectoryHandle extends DirectoryHandle {
      * 
      * @internal
      * @since 1.0.0
-     * @version 1.0.0
+     * @version 1.1.0
      * 
      * @return Handle
      */
     private function createLockFileHandle(): RegularFileHandle {
 
-        return $this->lockFile->open($this->options['lockFileOpeningMode']);
+        $handle = $this->lockFile->open($this->options['lockFileOpeningMode']);
+
+        $handle->setLogger($this->logger);
+
+        return $handle;
     }
 }

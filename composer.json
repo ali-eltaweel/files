@@ -1,6 +1,6 @@
 {
     "name": "ali-eltaweel/files",
-    "version": "1.1.1",
+    "version": "1.2.0",
     "description": "File Managment in PHP.",
     "maintainers": [
         {
@@ -13,7 +13,8 @@
         "ali-eltaweel/computed-properties": "^1.0.1",
         "ali-eltaweel/virtual-props": "^1.0.0",
         "ali-eltaweel/lazy-props": "^1.0.0",
-        "ali-eltaweel/codecs": "^1.0.0"
+        "ali-eltaweel/codecs": "^1.2",
+        "ali-eltaweel/logger": "^2.0"
     },
     "autoload": {
         "psr-4": {

@@ -9,7 +9,7 @@ use Lang\Annotations\{ Computes, Sets };
  * 
  * @api
  * @since 1.0.0
- * @version 1.0.0
+ * @version 1.1.0
  * @package files
  * @author Ali M. Kamel <ali.kamel.dev@gmail.com>
  * 
@@ -24,13 +24,26 @@ class RegularFile extends File {
      * @final
      * @abstract
      * @since 1.0.0
-     * @version 1.0.0
+     * @version 1.1.0
      * 
-     * @return Handles\Handle Returns a handle to the opened file.
+     * @return Handles\RegularFileHandle Returns a handle to the opened file.
      */
     public final function open(string $mode = 'r'): Handles\RegularFileHandle {
 
-        return new Handles\RegularFileHandle($this->path, $mode);
+        $logUnit = static::class . '::' . __FUNCTION__;
+
+        $this->infoLog(fn () => [
+            'Opening file' => [ 'path' => $this->path->path, 'mode' => $mode ]
+        ], $logUnit);
+
+        $handle = new Handles\RegularFileHandle($this->path, $mode);
+        $handle->setLogger($this->logger);
+
+        $this->debugLog(fn () => [
+            'Opening file' => [ 'path' => $this->path->path, 'mode' => $mode, 'handle' => [ 'class' => $handle::class, 'id' => spl_object_id($handle) ] ]
+        ], $logUnit);
+
+        return $handle;
     }
 
     /**
@@ -66,7 +79,7 @@ class RegularFile extends File {
      * @api
      * @final
      * @since 1.0.0
-     * @version 1.0.0
+     * @version 1.1.0
      * 
      * @param string $content The content to be set in the file.
      * 
@@ -75,7 +88,27 @@ class RegularFile extends File {
     #[Sets('content')]
     public final function setContent(string $content): int {
 
-        return $this->transaction(fn (Handles\RegularFileHandle $handle) => $handle->setContent($content), 'w');
+        $logUnit = static::class . '::' . __FUNCTION__;
+
+        $this->infoLog(fn () => [ 'Writing file content' => [ 'path' => $this->path->path ] ], $logUnit);
+        $this->debugLog(fn () => [
+            'Writing file content' => [
+                'path'    => $this->path->path,
+                'length'  => function_exists('mb_strlen') ? mb_strlen($content) : strlen($content)
+            ]
+        ], $logUnit);
+
+        $written = $this->transaction(fn (Handles\RegularFileHandle $handle) => $handle->setContent($content), 'w');
+
+        $this->debugLog(fn () => [
+            'Writing file content' => [
+                'path'    => $this->path->path,
+                'length'  => function_exists('mb_strlen') ? mb_strlen($content) : strlen($content),
+                'written' => $written
+            ]
+        ], $logUnit);
+
+        return $written;
     }
 
     /**
@@ -84,13 +117,26 @@ class RegularFile extends File {
      * @api
      * @final
      * @since 1.0.0
-     * @version 1.0.0
+     * @version 1.1.0
      * 
      * @return string|null Returns the content of the file or null if the file is empty.
      */
     #[Computes('content')]
     public final function getContent(): ?string {
 
-        return $this->transaction(fn (Handles\RegularFileHandle $handle) => $handle->getContent(), 'r');
+        $logUnit = static::class . '::' . __FUNCTION__;
+
+        $this->infoLog(fn () => [ 'Reading file content' => [ 'path' => $this->path->path ] ], $logUnit);
+
+        $content = $this->transaction(fn (Handles\RegularFileHandle $handle) => $handle->getContent(), 'r');
+
+        $this->debugLog(fn () => [
+            'Reading file content' => [
+                'path'    => $this->path->path,
+                'length'  => function_exists('mb_strlen') ? mb_strlen($content) : strlen($content)
+            ]
+        ], $logUnit);
+
+        return $content;
     }
 }

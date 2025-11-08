@@ -4,13 +4,15 @@ namespace Files;
 
 use Lang\{ Annotations\Computes, Annotations\Sets, ComputedProperties, VirtualProperties };
 
+use Logger\{ EmitsLogs, IHasLogger, Logger };
+
 /**
  * Abstract File.
  * 
  * @api
  * @abstract
  * @since 1.0.0
- * @version 1.1.0
+ * @version 1.2.0
  * @package files
  * @author Ali M. Kamel <ali.kamel.dev@gmail.com>
  * 
@@ -28,10 +30,11 @@ use Lang\{ Annotations\Computes, Annotations\Sets, ComputedProperties, VirtualPr
  * @property-read FileType|null $type
  * @property-read     Stat|null $stat
  */
-abstract class File {
+abstract class File implements IHasLogger {
 
     use ComputedProperties;
     use VirtualProperties;
+    use EmitsLogs;
 
     /**
      * The file type corresponding to this file class.
@@ -66,6 +69,16 @@ abstract class File {
     public readonly Path $path;
 
     /**
+     * The logger instance.
+     * 
+     * @internal
+     * @since 1.2.0
+     * 
+     * @var Logger|null $logger
+     */
+    protected ?Logger $logger = null;
+
+    /**
      * Creates a new file instance.
      * 
      * @api
@@ -80,11 +93,26 @@ abstract class File {
     }
 
     /**
+     * Sets the logger instance.
+     * 
+     * @api
+     * @since 1.2.0
+     * @version 1.0.0
+     * 
+     * @param Logger|null $logger
+     * @return void
+     */
+    public function setLogger(?Logger $logger): void {
+
+        $this->logger = $logger;
+    }
+
+    /**
      * Sets the group of the file.
      * 
      * @api
      * @since 1.0.0
-     * @version 1.0.0
+     * @version 1.1.0
      * 
      * @param string|int $group The group name or ID.
      * 
@@ -93,7 +121,19 @@ abstract class File {
     #[Sets('gid')]
     public function chgrp(string|int $group): bool {
 
-        return chgrp($this->path, $group);
+        $logUnit = static::class . '::' . __FUNCTION__;
+
+        $this->infoLog(fn () => [
+            'Changing group' => [ 'path' => $this->path->path, 'group' => $group ]
+        ], $logUnit);
+
+        $changed = chgrp($this->path, $group);
+
+        $this->debugLog(fn () => [
+            'Changing group' => [ 'path' => $this->path->path, 'group' => $group, 'success' => $changed ]
+        ], $logUnit);
+
+        return $changed;
     }
 
     /**
@@ -102,14 +142,26 @@ abstract class File {
      * @api
      * @final
      * @since 1.0.0
-     * @version 1.0.0
+     * @version 1.1.0
      * 
      * @return int|null Returns the group ID, or null if the operation fails.
      */
     #[Computes('gid')]
     public final function getGroup(): ?int {
+
+        $logUnit = static::class . '::' . __FUNCTION__;
+
+        $this->infoLog(fn () => [
+            'Getting group' => [ 'path' => $this->path->path ]
+        ], $logUnit);
         
-        return ($group = filegroup($this->path)) === false ? null : $group;
+        $group = ($group = filegroup($this->path)) === false ? null : $group;
+
+        $this->debugLog(fn () => [
+            'Getting group' => [ 'path' => $this->path->path, 'group' => $group ]
+        ], $logUnit);
+
+        return $group;
     }
 
     /**
@@ -118,14 +170,26 @@ abstract class File {
      * @api
      * @final
      * @since 1.0.0
-     * @version 1.0.0
+     * @version 1.1.0
      * 
      * @return int|null Returns the permissions as an integer, or null if the operation fails.
      */
     #[Computes('permissions')]
     public final function getPermissions(): ?int {
+
+        $logUnit = static::class . '::' . __FUNCTION__;
+
+        $this->infoLog(fn () => [
+            'Getting permissions' => [ 'path' => $this->path->path ]
+        ], $logUnit);
         
-        return ($perms = fileperms($this->path)) === false ? null : $perms;
+        $perms = ($perms = fileperms($this->path)) === false ? null : $perms;
+
+        $this->debugLog(fn () => [
+            'Getting permissions' => [ 'path' => $this->path->path, 'permissions' => $perms ]
+        ], $logUnit);
+
+        return $perms;
     }
 
     /**
@@ -134,7 +198,7 @@ abstract class File {
      * @api
      * @final
      * @since 1.0.0
-     * @version 1.0.0
+     * @version 1.1.0
      * 
      * @param int $mode The mode to set, in octal format.
      * 
@@ -143,7 +207,19 @@ abstract class File {
     #[Sets('mode')]
     public final function chmod(int $mode): bool {
 
-        return chmod($this->path, $mode);
+        $logUnit = static::class . '::' . __FUNCTION__;
+
+        $this->infoLog(fn () => [
+            'Changing mode' => [ 'path' => $this->path->path, 'mode' => $mode ]
+        ], $logUnit);
+
+        $changed = chmod($this->path, $mode);
+
+        $this->debugLog(fn () => [
+            'Changing mode' => [ 'path' => $this->path->path, 'mode' => $mode, 'success' => $changed ]
+        ], $logUnit);
+
+        return $changed;
     }
 
     /**
@@ -152,14 +228,31 @@ abstract class File {
      * @api
      * @final
      * @since 1.0.0
-     * @version 1.0.0
+     * @version 1.1.0
      * 
      * @return int|null Returns the mode as an integer, or null if the operation fails.
      */
     #[Computes('mode')]
     public final function getMode(): ?int {
         
-        return octdec(substr(decoct($this->getPermissions()), -4));
+        $logUnit = static::class . '::' . __FUNCTION__;
+
+        $this->infoLog(fn () => [
+            'Getting mode' => [ 'path' => $this->path->path ]
+        ], $logUnit);
+
+        if (is_null($perms = $this->getPermissions())) {
+
+            return null;
+        }
+
+        $mode = octdec(substr(decoct($perms), -4));
+
+        $this->debugLog(fn () => [
+            'Getting mode' => [ 'path' => $this->path->path, 'mode' => $mode ]
+        ], $logUnit);
+
+        return $mode;
     }
 
     /**
@@ -167,7 +260,7 @@ abstract class File {
      * 
      * @api
      * @since 1.0.0
-     * @version 1.0.0
+     * @version 1.1.0
      * 
      * @param string|int $user The user name or ID.
      * 
@@ -176,7 +269,19 @@ abstract class File {
     #[Sets('uid')]
     public function chown(string|int $user): bool {
 
-        return chown($this->path, $user);
+        $logUnit = static::class . '::' . __FUNCTION__;
+
+        $this->infoLog(fn () => [
+            'Changing owner' => [ 'path' => $this->path->path, 'user' => $user ]
+        ], $logUnit);
+
+        $changed = chown($this->path, $user);
+
+        $this->debugLog(fn () => [
+            'Changing owner' => [ 'path' => $this->path->path, 'user' => $user, 'success' => $changed ]
+        ], $logUnit);
+
+        return $changed;
     }
 
     /**
@@ -185,14 +290,26 @@ abstract class File {
      * @api
      * @final
      * @since 1.0.0
-     * @version 1.0.0
+     * @version 1.1.0
      * 
      * @return int|null Returns the user ID of the owner, or null if the operation fails.
      */
     #[Computes('uid')]
     public final function getOwner(): ?int {
         
-        return ($user = fileowner($this->path)) === false ? null : $user;
+        $logUnit = static::class . '::' . __FUNCTION__;
+
+        $this->infoLog(fn () => [
+            'Getting owner' => [ 'path' => $this->path->path ]
+        ], $logUnit);
+
+        $user = ($user = fileowner($this->path)) === false ? null : $user;
+
+        $this->debugLog(fn () => [
+            'Getting owner' => [ 'path' => $this->path->path, 'user' => $user ]
+        ], $logUnit);
+
+        return $user;
     }
 
     /**
@@ -201,7 +318,7 @@ abstract class File {
      * @api
      * @final
      * @since 1.0.0
-     * @version 1.0.0
+     * @version 1.1.0
      * 
      * @param int|null $atime The access time as a Unix timestamp, or null to use the current time.
      * 
@@ -210,7 +327,19 @@ abstract class File {
     #[Sets('atime')]
     public final function setAccessTime(?int $atime): bool {
 
-        return $this->touch($atime, $atime);
+        $logUnit = static::class . '::' . __FUNCTION__;
+
+        $this->infoLog(fn () => [
+            'Setting access time' => [ 'path' => $this->path->path, 'atime' => $atime ]
+        ], $logUnit);
+
+        $changed = $this->touch($atime, $atime);
+
+        $this->debugLog(fn () => [
+            'Setting access time' => [ 'path' => $this->path->path, 'atime' => $atime, 'success' => $changed ]
+        ], $logUnit);
+
+        return $changed;
     }
 
     /**
@@ -219,14 +348,26 @@ abstract class File {
      * @api
      * @final
      * @since 1.0.0
-     * @version 1.0.0
+     * @version 1.1.0
      * 
      * @return int|null Returns the access time as a Unix timestamp, or null if the operation fails.
      */
     #[Computes('atime')]
     public final function getAccessTime(): ?int {
         
-        return ($atime = fileatime($this->path)) === false ? null : $atime;
+        $logUnit = static::class . '::' . __FUNCTION__;
+
+        $this->infoLog(fn () => [
+            'Getting access time' => [ 'path' => $this->path->path ]
+        ], $logUnit);
+
+        $atime = ($atime = fileatime($this->path)) === false ? null : $atime;
+
+        $this->debugLog(fn () => [
+            'Getting access time' => [ 'path' => $this->path->path, 'atime' => $atime ]
+        ], $logUnit);
+
+        return $atime;
     }
 
     /**
@@ -235,14 +376,26 @@ abstract class File {
      * @api
      * @final
      * @since 1.0.0
-     * @version 1.0.0
+     * @version 1.1.0
      * 
      * @return int|null Returns the change time as a Unix timestamp, or null if the operation fails.
      */
     #[Computes('ctime')]
     public final function getChangeTime(): ?int {
         
-        return ($ctime = filectime($this->path)) === false ? null : $ctime;
+        $logUnit = static::class . '::' . __FUNCTION__;
+
+        $this->infoLog(fn () => [
+            'Getting inode change time' => [ 'path' => $this->path->path ]
+        ], $logUnit);
+
+        $ctime = ($ctime = filectime($this->path)) === false ? null : $ctime;
+
+        $this->debugLog(fn () => [
+            'Getting inode change time' => [ 'path' => $this->path->path, 'ctime' => $ctime ]
+        ], $logUnit);
+
+        return $ctime;
     }
 
     /**
@@ -251,7 +404,7 @@ abstract class File {
      * @api
      * @final
      * @since 1.0.0
-     * @version 1.0.0
+     * @version 1.1.0
      * 
      * @param int|null $mtime The modification time as a Unix timestamp, or null to use the current time.
      * 
@@ -260,7 +413,19 @@ abstract class File {
     #[Sets('mtime')]
     public final function setModificationTime(?int $mtime): bool {
 
-        return $this->touch($mtime);
+        $logUnit = static::class . '::' . __FUNCTION__;
+
+        $this->infoLog(fn () => [
+            'Setting modification time' => [ 'path' => $this->path->path, 'mtime' => $mtime ]
+        ], $logUnit);
+
+        $changed = $this->touch($mtime);
+
+        $this->debugLog(fn () => [
+            'Setting modification time' => [ 'path' => $this->path->path, 'mtime' => $mtime, 'success' => $changed ]
+        ], $logUnit);
+
+        return $changed;
     }
 
     /**
@@ -269,14 +434,26 @@ abstract class File {
      * @api
      * @final
      * @since 1.0.0
-     * @version 1.0.0
+     * @version 1.1.0
      * 
      * @return int|null Returns the modification time as a Unix timestamp, or null if the operation fails.
      */
     #[Computes('mtime')]
     public final function getModificationTime(): ?int {
         
-        return ($mtime = filemtime($this->path)) === false ? null : $mtime;
+        $logUnit = static::class . '::' . __FUNCTION__;
+
+        $this->infoLog(fn () => [
+            'Getting modification time' => [ 'path' => $this->path->path ]
+        ], $logUnit);
+
+        $mtime = ($mtime = filemtime($this->path)) === false ? null : $mtime;
+
+        $this->debugLog(fn () => [
+            'Getting modification time' => [ 'path' => $this->path->path, 'mtime' => $mtime ]
+        ], $logUnit);
+
+        return $mtime;
     }
 
     /**
@@ -285,14 +462,26 @@ abstract class File {
      * @api
      * @final
      * @since 1.0.0
-     * @version 1.0.0
+     * @version 1.1.0
      * 
      * @return int|null Returns the inode number, or null if the operation fails.
      */
     #[Computes('inode')]
     public final function getINode(): ?int {
         
-        return ($inode = fileinode($this->path)) === false ? null : $inode;
+        $logUnit = static::class . '::' . __FUNCTION__;
+
+        $this->infoLog(fn () => [
+            'Getting inode' => [ 'path' => $this->path->path ]
+        ], $logUnit);
+
+        $inode = ($inode = fileinode($this->path)) === false ? null : $inode;
+
+        $this->debugLog(fn () => [
+            'Getting inode' => [ 'path' => $this->path->path, 'inode' => $inode ]
+        ], $logUnit);
+
+        return $inode;
     }
 
     /**
@@ -301,14 +490,26 @@ abstract class File {
      * @api
      * @final
      * @since 1.0.0
-     * @version 1.0.0
+     * @version 1.1.0
      * 
      * @return int|null Returns the size in bytes, or null if the operation fails.
      */
     #[Computes('size')]
     public final function getSize(): ?int {
         
-        return ($size = filesize($this->path)) === false ? null : $size;
+        $logUnit = static::class . '::' . __FUNCTION__;
+
+        $this->infoLog(fn () => [
+            'Getting size' => [ 'path' => $this->path->path ]
+        ], $logUnit);
+
+        $size = ($size = filesize($this->path)) === false ? null : $size;
+
+        $this->debugLog(fn () => [
+            'Getting size' => [ 'path' => $this->path->path, 'size' => $size ]
+        ], $logUnit);
+
+        return $size;
     }
 
     /**
@@ -317,14 +518,26 @@ abstract class File {
      * @api
      * @final
      * @since 1.0.0
-     * @version 1.0.0
+     * @version 1.1.0
      * 
      * @return FileType|null Returns the type of the file, or null if the file does not exist or the type cannot be determined.
      */
     #[Computes('type')]
     public final function getType(): ?FileType {
+
+        $logUnit = static::class . '::' . __FUNCTION__;
+
+        $this->infoLog(fn () => [
+            'Getting type' => [ 'path' => $this->path->path ]
+        ], $logUnit);
         
-        return FileType::of($this->path);
+        $type = FileType::of($this->path);
+
+        $this->debugLog(fn () => [
+            'Getting type' => [ 'path' => $this->path->path, 'type' => $type?->name ]
+        ], $logUnit);
+
+        return $type;
     }
 
     /**
@@ -333,14 +546,26 @@ abstract class File {
      * @api
      * @final
      * @since 1.0.0
-     * @version 1.0.0
+     * @version 1.1.0
      * 
      * @return Stat|null Returns a Stat object containing detailed information about the file, or null if the file does not exist.
      */
     #[Computes('stat')]
     public final function getStat(): ?Stat {
+
+        $logUnit = static::class . '::' . __FUNCTION__;
+
+        $this->infoLog(fn () => [
+            'Getting stats' => [ 'path' => $this->path->path ]
+        ], $logUnit);
         
-        return $this->path->exists() ? new Stat($this->path, $this->getType() == FileType::Link) : null;
+        $stats = $this->path->exists() ? new Stat($this->path, $this->getType() == FileType::Link) : null;
+
+        $this->debugLog(fn () => [
+            'Getting stats' => [ 'path' => $this->path->path, 'stats' => $stats?->toArray() ]
+        ], $logUnit);
+
+        return $stats;
     }
 
     /**
@@ -348,7 +573,7 @@ abstract class File {
      * 
      * @api
      * @since 1.0.0
-     * @version 1.1.0
+     * @version 1.2.0
      * 
      * @param Path|string $target The target path where the file should be copied.
      * 
@@ -356,7 +581,19 @@ abstract class File {
      */
     public function copy(Path|string $target): bool {
 
-        return copy($this->path, $target);
+        $logUnit = static::class . '::' . __FUNCTION__;
+
+        $this->infoLog(fn () => [
+            'Copying file' => [ 'path' => $this->path->path, 'target' => "$target" ]
+        ], $logUnit);
+
+        $copied = copy($this->path, $target);
+
+        $this->debugLog(fn () => [
+            'Copying file' => [ 'path' => $this->path->path, 'target' => "$target", 'copied' => $copied ]
+        ], $logUnit);
+
+        return $copied;
     }
 
     /**
@@ -365,7 +602,7 @@ abstract class File {
      * @api
      * @final
      * @since 1.0.0
-     * @version 1.0.0
+     * @version 1.1.0
      * 
      * @param Path|string $target The target path for the hard link.
      * 
@@ -373,7 +610,19 @@ abstract class File {
      */
     public final function link(Path|string $target): bool {
 
-        return link($this->path, $target);
+        $logUnit = static::class . '::' . __FUNCTION__;
+
+        $this->infoLog(fn () => [
+            'Creating hard link' => [ 'path' => $this->path->path, 'target' => "$target" ]
+        ], $logUnit);
+
+        $created = link($this->path, $target);
+
+        $this->debugLog(fn () => [
+            'Creating hard link' => [ 'path' => $this->path->path, 'target' => "$target", 'created' => $created ]
+        ], $logUnit);
+
+        return $created;
     }
 
     /**
@@ -382,7 +631,7 @@ abstract class File {
      * @api
      * @final
      * @since 1.0.0
-     * @version 1.0.0
+     * @version 1.1.0
      * 
      * @param Path|string $target The target path for the symbolic link.
      * 
@@ -390,7 +639,19 @@ abstract class File {
      */
     public final function symlink(Path|string $target): bool {
 
-        return symlink($this->path, $target);
+        $logUnit = static::class . '::' . __FUNCTION__;
+
+        $this->infoLog(fn () => [
+            'Creating symbolic link' => [ 'path' => $this->path->path, 'target' => "$target" ]
+        ], $logUnit);
+
+        $created = symlink($this->path, $target);
+
+        $this->debugLog(fn () => [
+            'Creating symbolic link' => [ 'path' => $this->path->path, 'target' => "$target", 'created' => $created ]
+        ], $logUnit);
+
+        return $created;
     }
 
     /**
@@ -399,7 +660,7 @@ abstract class File {
      * @api
      * @final
      * @since 1.0.0
-     * @version 1.0.0
+     * @version 1.1.0
      * 
      * @param Path|string $target The new name or path for the file.
      * 
@@ -407,7 +668,19 @@ abstract class File {
      */
     public final function rename(Path|string $target): bool {
 
-        return rename($this->path, $target);
+        $logUnit = static::class . '::' . __FUNCTION__;
+
+        $this->infoLog(fn () => [
+            'Renaming file' => [ 'path' => $this->path->path, 'target' => "$target" ]
+        ], $logUnit);
+
+        $renamed = rename($this->path, $target);
+
+        $this->debugLog(fn () => [
+            'Renaming file' => [ 'path' => $this->path->path, 'target' => "$target", 'renamed' => $renamed ]
+        ], $logUnit);
+
+        return $renamed;
     }
 
     /**
@@ -416,7 +689,7 @@ abstract class File {
      * @api
      * @final
      * @since 1.0.0
-     * @version 1.0.0
+     * @version 1.1.0
      * 
      * @param int|null $mtime The new modification time as a Unix timestamp, or null to use the current time.
      * @param int|null $atime The new access time as a Unix timestamp, or null to use the current time.
@@ -425,7 +698,19 @@ abstract class File {
      */
     public final function touch(?int $mtime = null, ?int $atime = null): bool {
 
-        return touch($this->path, $mtime, $atime);
+        $logUnit = static::class . '::' . __FUNCTION__;
+
+        $this->infoLog(fn () => [
+            'Touching file' => [ 'path' => $this->path->path, 'mtime' => $mtime, 'atime' => $atime ]
+        ], $logUnit);
+
+        $touched = touch($this->path, $mtime, $atime);
+
+        $this->debugLog(fn () => [
+            'Touching file' => [ 'path' => $this->path->path, 'mtime' => $mtime, 'atime' => $atime, 'touched' => $touched ]
+        ], $logUnit);
+
+        return $touched;
     }
 
     /**
@@ -433,13 +718,25 @@ abstract class File {
      * 
      * @api
      * @since 1.0.0
-     * @version 1.0.0
+     * @version 1.1.0
      * 
      * @return bool Returns true on success, false on failure.
      */
     public function remove(): bool {
 
-        return unlink($this->path);
+        $logUnit = static::class . '::' . __FUNCTION__;
+
+        $this->infoLog(fn () => [
+            'Removing file' => [ 'path' => $this->path->path ]
+        ], $logUnit);
+
+        $removed = unlink($this->path);
+
+        $this->debugLog(fn () => [
+            'Removing file' => [ 'path' => $this->path->path, 'removed' => $removed ]
+        ], $logUnit);
+
+        return $removed;
     }
 
     /**

@@ -5,6 +5,15 @@ namespace Files;
 use Lang\{ Annotations\Computes, ComputedProperties };
 
 /**
+ * File Statistics.
+ * 
+ * @api
+ * @final
+ * @since 1.0.0
+ * @version 1.1.0
+ * @package files
+ * @author Ali M. Kamel <ali.kamel.dev@gmail.com>
+ * 
  * @property-read int $deviceNumber
  * @property-read int $inodeNumber
  * @property-read int $mode
@@ -248,6 +257,37 @@ final class Stat {
     public final function getNumberOfBlocks(): int {
 
         return $this->getStat()['blocks'];
+    }
+
+    /**
+     * Converts the Stat instance to an associative array.
+     * 
+     * @api
+     * @final
+     * @since 1.1.0
+     * @version 1.0.0
+     * 
+     * @return array<string, mixed>
+     */
+    public final function toArray(): array {
+
+        $properties = [
+            'deviceNumber',
+            'inodeNumber',
+            'mode',
+            'numberOfLinks',
+            'uid',
+            'gid',
+            'deviceType',
+            'atime',
+            'ctime',
+            'mtime',
+            'size',
+            'blockSize',
+            'numberOfBlocks'
+        ];
+
+        return array_combine($properties, array_map(fn (string $property): mixed => $this->$property, $properties));
     }
 
     /**

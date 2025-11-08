@@ -11,7 +11,7 @@ use Lang\Annotations\{ Computes, Sets };
  * 
  * @api
  * @since 1.0.0
- * @version 1.0.1
+ * @version 1.1.0
  * @package files
  * @author Ali M. Kamel <ali.kamel.dev@gmail.com>
  * 
@@ -42,14 +42,26 @@ class EncodedFile extends RegularFile {
      * @api
      * @final
      * @since 1.0.0
-     * @version 1.0.1
+     * @version 1.1.0
      * 
      * @return mixed
      */
     #[Computes('data')]
     public final function getData(): mixed {
 
-        return is_null($content = $this->getContent()) ? null : $this->codec->decode($content);
+        $logUnit = static::class . '::' . __FUNCTION__;
+
+        $this->infoLog(fn () => [ 'Reading file data' => [ 'path' => $this->path->path ] ], $logUnit);
+        
+        $this->codec->setLogger($this->logger);
+        $data = is_null($content = $this->getContent()) ? null : $this->codec->decode($content);
+
+        $this->debugLog(fn () => [ 'Reading file data' => [
+            'path' => $this->path->path,
+            'type' => gettype($data) === 'object' ? get_class($data) : gettype($data)
+        ] ], $logUnit);
+
+        return $data;
     }
 
     /**
@@ -58,7 +70,7 @@ class EncodedFile extends RegularFile {
      * @api
      * @final
      * @since 1.0.0
-     * @version 1.0.0
+     * @version 1.1.0
      * 
      * @param mixed $data
      * @return int The number of bytes written to the file.
@@ -66,6 +78,24 @@ class EncodedFile extends RegularFile {
     #[Sets('data')]
     public final function setData(mixed $data): int {
 
-        return $this->setContent($this->codec->encode($data));
+        $logUnit = static::class . '::' . __FUNCTION__;
+
+        $this->infoLog(fn () => [ 'Writing file data' => [
+            'path' => $this->path->path,
+            'type' => gettype($data) === 'object' ? get_class($data) : gettype($data)
+        ] ], $logUnit);
+
+        $this->codec->setLogger($this->logger);
+        $written = $this->setContent($this->codec->encode($data));
+
+        $this->debugLog(fn () => [
+            'Writing file data' => [
+                'path'    => $this->path->path,
+                'type'    => gettype($data) === 'object' ? get_class($data) : gettype($data),
+                'written' => $written
+            ]
+        ], $logUnit);
+
+        return $written;
     }
 }

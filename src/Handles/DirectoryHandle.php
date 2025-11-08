@@ -9,7 +9,7 @@ use Files\Stat;
  * 
  * @api
  * @since 1.0.0
- * @version 1.0.0
+ * @version 1.1.0
  * @package files
  * @author Ali M. Kamel <ali.kamel.dev@gmail.com>
  * 
@@ -24,13 +24,23 @@ class DirectoryHandle extends Handle {
      * @final
      * @override
      * @since 1.0.0
-     * @version 1.0.0
+     * @version 1.1.0
      * 
      * @return void
      */
     public final function close(): bool {
 
+        $logUnit = static::class . '::' . __FUNCTION__;
+
+        $this->infoLog(fn () => [
+            'Closing directory handle' => [ 'path' => $this->path->path ]
+        ], $logUnit);
+
         closedir($this->handle);
+
+        $this->debugLog(fn () => [
+            'Directory handle closed' => [ 'path' => $this->path->path ]
+        ], $logUnit);
 
         return true;
     }
@@ -42,13 +52,25 @@ class DirectoryHandle extends Handle {
      * @final
      * @override
      * @since 1.0.0
-     * @version 1.0.0
+     * @version 1.1.0
      * 
      * @return Stat|null Returns a Stat object containing detailed information about the handle, or null if the handle is not valid.
      */
     public final function getStat(): ?Stat {
+
+        $logUnit = static::class . '::' . __FUNCTION__;
+
+        $this->infoLog(fn () => [
+            'Getting stats' => [ 'path' => $this->path->path ]
+        ], $logUnit);
         
-        return new Stat($this->path);
+        $stats = new Stat($this->path);
+
+        $this->debugLog(fn () => [
+            'Getting stats' => [ 'path' => $this->path->path, 'stats' => $stats->toArray() ]
+        ], $logUnit);
+
+        return $stats;
     }
 
     /**
@@ -56,17 +78,36 @@ class DirectoryHandle extends Handle {
      * 
      * @api
      * @final
-     * @oevrride
+     * @override
      * @since 1.0.0
-     * @version 1.0.0
+     * @version 1.1.0
      * 
      * @return ?string
      */
     public final function read(): ?string {
 
+        $logUnit = static::class . '::' . __FUNCTION__;
+
+        $this->infoLog(fn () => [
+            'Reading directory entry' => [ 'path' => $this->path->path ]
+        ], $logUnit);
+
         $entry = readdir($this->handle);
 
-        return $entry === false ? null : $entry;
+        if ($entry === false) {
+
+            $this->warningLog(fn () => [
+                'End of directory entries' => [ 'path' => $this->path->path ]
+            ], $logUnit);
+
+            return null;
+        }
+
+        $this->debugLog(fn () => [
+            'Reading directory entry' => [ 'path' => $this->path->path, 'entry' => $entry ]
+        ], $logUnit);
+
+        return $entry;
     }
 
     /**

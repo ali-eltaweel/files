@@ -12,7 +12,7 @@ use Lang\Annotations\{ Computes, Sets };
  * 
  * @api
  * @since 1.0.0
- * @version 1.0.0
+ * @version 1.1.0
  * @package files
  * @author Ali M. Kamel <ali.kamel.dev@gmail.com>
  * 
@@ -54,13 +54,17 @@ trait LockableHandle {
      * @api
      * @final
      * @since 1.0.0
-     * @version 1.0.0
+     * @version 1.1.0
      * 
      * @param Lock|null $lock
      * @return static
      */
     #[Sets('lock')]
     public final function setLock(?Lock $lock): static {
+
+        $logUnit = static::class . '::' . __FUNCTION__;
+
+        $this->infoLog(fn () => [ 'Setting lock' => [ 'lock' => $lock?->name ] ], $logUnit);
 
         if ($lock == $this->lock) {
 
@@ -78,6 +82,8 @@ trait LockableHandle {
         }
 
         $this->lock = $lock;
+
+        $this->debugLog(fn () => [ 'Lock set' => [ 'lock' => $lock?->name ] ], $logUnit);
         
         return $this;
     }
@@ -103,13 +109,19 @@ trait LockableHandle {
      * @api
      * @final
      * @since 1.0.0
-     * @version 1.0.0
+     * @version 1.1.0
      * 
      * @param Lock $lock
      */
     public final function lock(Lock $lock): static {
 
+        $logUnit = static::class . '::' . __FUNCTION__;
+
+        $this->infoLog(fn () => [ 'Acquiring lock' => [ 'lock' => $lock->name ] ], $logUnit);
+
         $this->setLock($lock);
+
+        $this->debugLog(fn () => [ 'Acquiring lock' => [ 'lock' => $lock->name ] ], $logUnit);
 
         return $this;
     }
@@ -120,14 +132,20 @@ trait LockableHandle {
      * @api
      * @final
      * @since 1.0.0
-     * @version 1.0.0
+     * @version 1.1.0
      * 
      * @param bool $close
      * @return static
      */
     public final function unlock(bool $close = true): static {
 
+        $logUnit = static::class . '::' . __FUNCTION__;
+
+        $this->infoLog(fn () => [ 'Releasing lock' ], $logUnit);
+
         $this->setLock(null);
+
+        $this->infoLog(fn () => [ 'Lock released' ], $logUnit);
 
         if ($close) {
 
