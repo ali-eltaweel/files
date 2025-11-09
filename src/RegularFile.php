@@ -9,7 +9,7 @@ use Lang\Annotations\{ Computes, Sets };
  * 
  * @api
  * @since 1.0.0
- * @version 1.1.0
+ * @version 1.2.0
  * @package files
  * @author Ali M. Kamel <ali.kamel.dev@gmail.com>
  * 
@@ -138,5 +138,20 @@ class RegularFile extends File {
         ], $logUnit);
 
         return $content;
+    }
+
+    /**
+     * Clears the file content.
+     * 
+     * @api
+     * @final
+     * @since 1.2.0
+     * @version 1.0.0
+     * 
+     * @return bool
+     */
+    public final function clearContent(): bool {
+
+        return 0 === $this->setContent('');
     }
 }

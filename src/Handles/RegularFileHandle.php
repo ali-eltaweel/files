@@ -11,7 +11,7 @@ use Lang\Annotations\{ Computes, Sets };
  * 
  * @api
  * @since 1.0.0
- * @version 1.1.0
+ * @version 1.2.0
  * @package files
  * @author Ali M. Kamel <ali.kamel.dev@gmail.com>
  * 
@@ -397,7 +397,7 @@ class RegularFileHandle extends Handle {
      * @api
      * @final
      * @since 1.0.0
-     * @version 1.1.0
+     * @version 1.2.0
      * 
      * @param string $content
      * @param ?int $length
@@ -418,7 +418,7 @@ class RegularFileHandle extends Handle {
             ]
         ], $logUnit);
 
-        $written = fwrite($this->handle, explode("\n", $content)[0] . "\n", $length);
+        $written = fwrite($this->handle, explode("\n", $content)[0] . PHP_EOL, $length);
 
         $this->debugLog(fn () => [
             'Writing a line to file handle' => [
