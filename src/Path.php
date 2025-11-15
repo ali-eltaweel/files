@@ -12,7 +12,7 @@ use Stringable;
  * @api
  * @final
  * @since 1.0.0
- * @version 1.0.0
+ * @version 1.1.0
  * @package files
  * @author Ali M. Kamel <ali.kamel.dev@gmail.com>
  * 
@@ -217,5 +217,21 @@ final class Path implements Stringable {
                   ltrim($path, $this->separator),
             $this->separator
         );
+    }
+
+    /**
+     * Clears the stat (and optionally the realpath) cache(s) for this path.
+     * 
+     * @api
+     * @final
+     * @since 1.1.0
+     * @version 1.0.0
+     * 
+     * @param bool $clearRealpathCache Whether to also clear the realpath cache.
+     * @return void
+     */
+    public final function clearStatCache(bool $clearRealpathCache = false): void {
+
+        clearstatcache($clearRealpathCache, $this);
     }
 }
