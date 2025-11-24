@@ -7,7 +7,7 @@ namespace Files;
  * 
  * @api
  * @since 1.0.0
- * @version 1.1.0
+ * @version 1.2.0
  * @package files
  * @author Ali M. Kamel <ali.kamel.dev@gmail.com>
  */
@@ -122,7 +122,7 @@ class Directory extends File {
      * 
      * @api
      * @since 1.0.0
-     * @version 1.1.0
+     * @version 1.2.0
      * 
      * @param callable(File): void $callback
      * @return void
@@ -144,10 +144,46 @@ class Directory extends File {
 
             $file->setLogger($this->logger);
 
-            $callback($file);
+            if ($callback($file) === false) {
+
+                $handle->close();
+                return;
+            }
         }
 
         $handle->close();
+    }
+
+    /**
+     * Copies the directory to a new location.
+     * 
+     * @api
+     * @final
+     * @override
+     * @since 1.2.0
+     * @version 1.0.0
+     * 
+     * @param Path|string $target The target path where the directory should be copied.
+     * 
+     * @return bool Returns true on success, false on failure.
+     */
+    public final function copy(Path|string $target): bool {
+
+        $target = is_string($target) ? new Path($target, $this->path->separator) : $target;
+
+        if (!is_dir($target) && !mkdir($target, $this->permissions, true)) {
+
+            return false;
+        }
+
+        $copied = true;
+
+        $this->foreachChild(function(File $file) use ($target, &$copied) {
+
+            return $copied = $file->copy($target->append($file->path->basename));
+        });
+
+        return $copied;
     }
 
     /**

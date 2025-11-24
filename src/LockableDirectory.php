@@ -7,7 +7,7 @@ namespace Files;
  * 
  * @api
  * @since 1.0.0
- * @version 1.1.0
+ * @version 1.2.0
  * @package files
  * @author Ali M. Kamel <ali.kamel.dev@gmail.com>
  * 
@@ -97,7 +97,7 @@ class LockableDirectory extends Directory {
      * @api
      * @final
      * @since 1.0.0
-     * @version 1.1.0
+     * @version 1.2.0
      * 
      * @param callable(File): void $callback
      * @return void
@@ -117,7 +117,11 @@ class LockableDirectory extends Directory {
 
                 $file->setLogger($this->logger);
 
-                $callback($file);
+                if ($callback($file) === false) {
+
+                    $handle->close();
+                    return;
+                }
             }
         });
     }
